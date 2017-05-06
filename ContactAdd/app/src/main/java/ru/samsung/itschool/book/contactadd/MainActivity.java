@@ -24,9 +24,9 @@ import java.util.ArrayList;
 
 public class MainActivity extends FragmentActivity implements LoaderManager.LoaderCallbacks<Cursor> {
     private SimpleCursorAdapter adapter;
-    ListView listView;
-    Button show, save;
-    EditText name, phone;
+    private ListView listView;
+    private Button show, save;
+    private EditText name, phone;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,12 +40,10 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         show.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Toast.makeText(getApplicationContext(),"fsfsf",Toast.LENGTH_LONG).show();
-                String phone = new String();
-
                 adapter = new SimpleCursorAdapter(getApplicationContext(),
                         android.R.layout.simple_list_item_2, null,
-                        new String[] { ContactsContract.Contacts.DISPLAY_NAME, ContactsContract.Contacts.HAS_PHONE_NUMBER},
+                        new String[] { ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                        ContactsContract.CommonDataKinds.Phone.NUMBER},
                         new int[] { android.R.id.text1, android.R.id.text2 }, 0);
 
                 listView.setAdapter(adapter);
@@ -55,6 +53,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         });
 
         save = (Button) findViewById(R.id.save);
+
         save.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -71,11 +70,11 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        return new CursorLoader(this, ContactsContract.Contacts.CONTENT_URI, new String[] {
-                ContactsContract.Contacts._ID,
-                ContactsContract.Contacts.DISPLAY_NAME,
-                ContactsContract.Contacts.HAS_PHONE_NUMBER,
-                ContactsContract.Contacts.PHOTO_ID}, null, null, null);
+        return new CursorLoader(getApplicationContext(), ContactsContract.CommonDataKinds.Phone.CONTENT_URI, new  String[]{
+                ContactsContract.CommonDataKinds.Phone._ID,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ContactsContract.CommonDataKinds.Phone.PHOTO_ID},null,null,null);
     }
 
     @Override
@@ -89,7 +88,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
     }
 
     private void addContact(String name, String phone) {
-        ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+        ArrayList<ContentProviderOperation> ops = new ArrayList<>();
         int rawContactInsertIndex = ops.size();
 
         ops.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
