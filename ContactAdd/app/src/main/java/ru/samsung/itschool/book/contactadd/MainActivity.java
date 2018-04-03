@@ -1,9 +1,12 @@
 package ru.samsung.itschool.book.contactadd;
 
+import android.Manifest;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.OperationApplicationException;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.os.Bundle;
@@ -25,6 +28,10 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
     private ListView listView;
     private Button show, save;
     private EditText name, phone;
+
+    final int PERMISSIONS_REQUEST_READ_CONTACTS = 100;
+    final int PERMISSIONS_REQUEST_WRITE_CONTACTS = 200;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,15 +45,13 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         show.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                adapter = new SimpleCursorAdapter(getApplicationContext(),
-                        android.R.layout.simple_list_item_2, null,
-                        new String[] { ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                        ContactsContract.CommonDataKinds.Phone.NUMBER},
-                        new int[] { android.R.id.text1, android.R.id.text2 }, 0);
-
-                listView.setAdapter(adapter);
-
-                getSupportLoaderManager().initLoader(0, null, MainActivity.this);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                        && checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
+                    //After this point you wait for callback in onRequestPermissionsResult(int, String[], int[]) overriden method
+                } else {
+                    showContacts();
+                }
             }
         });
 
@@ -55,16 +60,16 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         save.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String contactName = name.getText().toString();
-                String contactPhone = phone.getText().toString();
-                addContact(contactName, contactPhone);
-                Toast.makeText(getApplicationContext(), "Contact added", Toast.LENGTH_LONG).show();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                        && checkSelfPermission(Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.WRITE_CONTACTS}, PERMISSIONS_REQUEST_WRITE_CONTACTS);
+                    //After this point you wait for callback in onRequestPermissionsResult(int, String[], int[]) overriden method
+                } else {
+                    addContactFromEditText();
+                }
             }
         });
-
-
     }
-
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
@@ -113,8 +118,53 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         } catch (OperationApplicationException e) {
             e.printStackTrace();
         }
+    }
 
+    private void addContactFromEditText() {
+        String contactName = name.getText().toString();
+        String contactPhone = phone.getText().toString();
+        addContact(contactName, contactPhone);
+        Toast.makeText(getApplicationContext(), "Contact added", Toast.LENGTH_LONG).show();
+    }
 
+    void showContacts() {
+        adapter = new SimpleCursorAdapter(
+                getApplicationContext(),
+                android.R.layout.simple_list_item_2,
+                null,
+                new String[]{
+                        ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                        ContactsContract.CommonDataKinds.Phone.NUMBER
+                },
+                new int[]{
+                        android.R.id.text1,
+                        android.R.id.text2},
+                0);
+
+        listView.setAdapter(adapter);
+
+        getSupportLoaderManager().initLoader(0, null, MainActivity.this);
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        if (requestCode == PERMISSIONS_REQUEST_READ_CONTACTS) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                showContacts();
+            } else {
+                Toast.makeText(this, "Until you grant the permission, we can not display the contacts", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        if (requestCode == PERMISSIONS_REQUEST_WRITE_CONTACTS) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                addContactFromEditText();
+            } else {
+                Toast.makeText(this, "Until you grant the permission, we can not add the contact", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
 }
